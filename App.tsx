@@ -18,12 +18,14 @@ import {
   Settings,
   AlertTriangle,
   X,
-  Database,
+  Store, // Trocado Database por Store
   Lock,
   Terminal,
   ShieldCheck,
   LogOut,
-  Cpu
+  Cpu,
+  Eye,
+  Unlock
 } from 'lucide-react';
 import { Product } from './types';
 import { generateDescription } from './geminiService';
@@ -42,7 +44,7 @@ interface SystemLog {
 }
 
 // --- COMPONENTE: MODAL DE LOGIN ADMIN ---
-const AdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
+const AdminLogin: React.FC<{ onLogin: () => void, onCancel: () => void }> = ({ onLogin, onCancel }) => {
   const [pass, setPass] = useState('');
   const [error, setError] = useState(false);
 
@@ -57,15 +59,18 @@ const AdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4">
-      <div className="w-full max-w-sm bg-gray-800 rounded-lg p-8 shadow-2xl border border-gray-700">
+    <div className="min-h-screen flex flex-col items-center justify-center bg-gray-900 text-white p-4 fixed inset-0 z-[100]">
+      <div className="w-full max-w-sm bg-gray-800 rounded-lg p-8 shadow-2xl border border-gray-700 relative">
+        <button onClick={onCancel} className="absolute top-4 right-4 text-gray-500 hover:text-white">
+          <X size={20} />
+        </button>
         <div className="flex justify-center mb-6">
           <div className="bg-[#ee4d2d] p-4 rounded-full shadow-lg shadow-orange-900/50">
             <Lock size={32} className="text-white" />
           </div>
         </div>
         <h2 className="text-2xl font-black text-center mb-1 uppercase tracking-wider">Acesso Restrito</h2>
-        <p className="text-gray-400 text-center text-xs mb-8">Shoppe System Kernel</p>
+        <p className="text-gray-400 text-center text-xs mb-8">Painel Administrativo</p>
         
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -88,22 +93,19 @@ const AdminLogin: React.FC<{ onLogin: () => void }> = ({ onLogin }) => {
             type="submit"
             className="w-full bg-[#ee4d2d] hover:bg-[#f05d40] text-white font-bold py-3 rounded uppercase tracking-wider transition-all transform active:scale-95 shadow-lg"
           >
-            Desbloquear Painel
+            Acessar Sistema
           </button>
         </form>
-        <div className="mt-6 text-center">
-          <a href="/" className="text-gray-500 text-xs hover:text-white transition-colors border-b border-transparent hover:border-gray-500 pb-0.5">Voltar para Loja</a>
-        </div>
       </div>
     </div>
   );
 };
 
 // --- COMPONENTE: PAINEL DE ADMINISTRAÇÃO (LOGS) ---
-const AdminPanel: React.FC<{ logs: SystemLog[], onLogout: () => void }> = ({ logs, onLogout }) => {
+const AdminPanel: React.FC<{ logs: SystemLog[], onLogout: () => void, onGoToStore: () => void }> = ({ logs, onLogout, onGoToStore }) => {
   return (
     <div className="min-h-screen bg-[#0a0a0a] text-green-500 font-mono p-4 md:p-8 flex flex-col">
-      <div className="flex justify-between items-end mb-6 border-b border-green-900/50 pb-4">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-end mb-6 border-b border-green-900/50 pb-4 gap-4">
         <div>
           <h1 className="text-3xl font-black text-white flex items-center gap-3">
             <Terminal size={32} className="text-[#ee4d2d]" /> 
@@ -113,12 +115,20 @@ const AdminPanel: React.FC<{ logs: SystemLog[], onLogout: () => void }> = ({ log
             <Cpu size={12} /> System Status: ONLINE | {logs.length} events logged
           </p>
         </div>
-        <button 
-          onClick={onLogout}
-          className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 transition-colors border border-gray-700"
-        >
-          <LogOut size={14} /> SAIR DO SISTEMA
-        </button>
+        <div className="flex gap-2">
+           <button 
+            onClick={onGoToStore}
+            className="bg-[#ee4d2d] hover:bg-[#f05d40] text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 transition-colors shadow-lg"
+          >
+            <Eye size={14} /> GERENCIAR LOJA
+          </button>
+          <button 
+            onClick={onLogout}
+            className="bg-gray-800 hover:bg-gray-700 text-white px-4 py-2 rounded text-xs font-bold flex items-center gap-2 transition-colors border border-gray-700"
+          >
+            <LogOut size={14} /> SAIR
+          </button>
+        </div>
       </div>
 
       <div className="flex-grow bg-[#050505] rounded border border-green-900/30 overflow-hidden flex flex-col shadow-2xl">
@@ -147,21 +157,6 @@ const AdminPanel: React.FC<{ logs: SystemLog[], onLogout: () => void }> = ({ log
           <div className="h-4" /> {/* Spacer */}
         </div>
       </div>
-      
-      <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-         <div className="bg-gray-900 p-4 rounded border border-gray-800">
-           <h3 className="text-white text-xs font-bold mb-2 flex items-center gap-2"><Database size={14} /> ENDPOINT</h3>
-           <p className="text-[10px] text-gray-500 break-all">{SCRIPT_URL}</p>
-         </div>
-         <div className="bg-gray-900 p-4 rounded border border-gray-800">
-           <h3 className="text-white text-xs font-bold mb-2 flex items-center gap-2"><ShieldCheck size={14} /> AUTH TOKEN</h3>
-           <p className="text-[10px] text-gray-500 break-all">{TOKEN.split('').map(() => '*').join('')} (Protegido)</p>
-         </div>
-         <div className="bg-gray-900 p-4 rounded border border-gray-800">
-           <h3 className="text-white text-xs font-bold mb-2 flex items-center gap-2"><Globe size={14} /> AMBIENTE</h3>
-           <p className="text-[10px] text-gray-500">React Production Build v4.2.0</p>
-         </div>
-      </div>
     </div>
   );
 };
@@ -183,11 +178,11 @@ const ConfirmDeleteModal: React.FC<ConfirmDeleteModalProps> = ({ isOpen, onClose
       <div className="bg-white w-full max-w-sm rounded-lg shadow-2xl overflow-hidden animate-in zoom-in duration-300">
         <div className="p-6 text-center">
           <div className="w-16 h-16 bg-red-100 text-red-600 rounded-full flex items-center justify-center mx-auto mb-4">
-            <AlertTriangle size={32} />
+            <Trash2 size={32} />
           </div>
-          <h3 className="text-lg font-bold text-gray-900 mb-2">Excluir Linha #{rowNumber}?</h3>
+          <h3 className="text-lg font-bold text-gray-900 mb-2">Excluir Produto?</h3>
           <p className="text-sm text-gray-500 mb-6">
-            Você vai apagar o produto <span className="font-bold text-black">"{productName}"</span>. O Google Sheets atualizará as linhas automaticamente após a exclusão.
+            Você tem certeza que deseja remover <span className="font-bold text-black">"{productName}"</span> da sua vitrine? Essa ação não pode ser desfeita.
           </p>
           <div className="flex gap-3">
             <button 
@@ -296,11 +291,6 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
               {editingProduct ? <Pencil size={24} /> : <Plus size={24} />} 
               {editingProduct ? 'Editar Produto' : 'Novo Anúncio'}
             </h2>
-            {editingProduct && (
-              <span className="text-[10px] font-black bg-white/20 px-2 py-0.5 rounded-full mt-1 w-fit uppercase">
-                Database Row: {editingProduct.rowNumber}
-              </span>
-            )}
           </div>
           <button onClick={onClose} className="hover:bg-white/20 rounded-full p-1 transition-colors">
             <X size={20} />
@@ -315,6 +305,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
               type="text" 
               name="name"
               required
+              placeholder="Ex: Fone Bluetooth TWS"
               className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-sm outline-none transition-all text-black font-medium focus:ring-2 ${themeRing}`}
               value={form.name}
               onChange={handleInputChange}
@@ -329,6 +320,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
                 name="price"
                 step="0.01"
                 required
+                placeholder="0,00"
                 className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-sm outline-none transition-all font-black text-black text-lg focus:ring-2 ${themeRing}`}
                 value={form.price}
                 onChange={handleInputChange}
@@ -339,6 +331,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
               <input 
                 type="url" 
                 name="link"
+                placeholder="https://..."
                 className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-sm outline-none transition-all text-black font-medium focus:ring-2 ${themeRing}`}
                 value={form.link}
                 onChange={handleInputChange}
@@ -352,6 +345,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
               type="url" 
               name="imageUrl"
               required
+              placeholder="https://exemplo.com/foto.jpg"
               className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-sm outline-none transition-all text-black font-medium focus:ring-2 ${themeRing}`}
               value={form.imageUrl}
               onChange={handleInputChange}
@@ -374,6 +368,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
             <textarea 
               name="description"
               rows={3}
+              placeholder="Descreva os detalhes do produto..."
               className={`w-full p-2.5 bg-gray-50 border border-gray-200 rounded-sm outline-none transition-all resize-none text-black font-medium focus:ring-2 ${themeRing}`}
               value={form.description}
               onChange={handleInputChange}
@@ -385,7 +380,7 @@ const ProductModal: React.FC<ModalProps> = ({ isOpen, onClose, onSave, editingPr
             disabled={isSubmitting}
             className={`w-full text-white py-3 rounded-sm font-bold shadow-lg transition-all transform active:scale-95 flex items-center justify-center gap-2 ${themeButton}`}
           >
-            {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingProduct ? 'SALVAR ALTERAÇÕES NA LINHA' : 'PUBLICAR NA VITRINE')}
+            {isSubmitting ? <Loader2 size={20} className="animate-spin" /> : (editingProduct ? 'SALVAR ALTERAÇÕES' : 'PUBLICAR PRODUTO')}
           </button>
         </form>
       </div>
@@ -555,58 +550,76 @@ const App: React.FC = () => {
     const searchLower = searchTerm.toLowerCase();
     return products.filter(p => 
       p.name.toLowerCase().includes(searchLower) || 
-      p.description.toLowerCase().includes(searchLower) ||
-      p.rowNumber.toString() === searchLower
-    ).sort((a, b) => b.rowNumber - a.rowNumber);
+      p.description.toLowerCase().includes(searchLower)
+    ).sort((a, b) => b.createdAt - a.createdAt); // Ordenação mais natural
   }, [products, searchTerm]);
 
   // --- RENDERIZAÇÃO CONDICIONAL ---
 
   if (viewMode === 'admin-login') {
-    return <AdminLogin onLogin={() => {
-      setIsAdminAuthenticated(true);
-      setViewMode('admin-dashboard');
-      addLog('warning', 'AUTH_ADMIN', 'Acesso administrativo concedido via senha.');
-    }} />;
+    return (
+      <>
+        {/* Renderiza a loja no fundo borrado */}
+        <div className="filter blur-sm pointer-events-none h-screen overflow-hidden">
+          <header className="bg-[#ee4d2d] px-4 py-4 shadow-lg">
+             <div className="max-w-7xl mx-auto flex items-center"><span className="text-white font-black text-xl italic uppercase">Shoppe</span></div>
+          </header>
+          <div className="max-w-7xl mx-auto p-6 grid grid-cols-2 md:grid-cols-4 gap-4">
+             {[1,2,3,4].map(i => <div key={i} className="bg-white aspect-square rounded shadow"></div>)}
+          </div>
+        </div>
+        <AdminLogin 
+          onLogin={() => {
+            setIsAdminAuthenticated(true);
+            setViewMode('admin-dashboard');
+            addLog('warning', 'AUTH_ADMIN', 'Acesso administrativo concedido via senha.');
+          }} 
+          onCancel={() => {
+            setViewMode('store');
+            window.history.pushState({}, '', '/');
+          }}
+        />
+      </>
+    );
   }
 
   if (viewMode === 'admin-dashboard' && isAdminAuthenticated) {
-    return <AdminPanel logs={systemLogs} onLogout={() => {
-      setViewMode('store');
-      setIsAdminAuthenticated(false);
-      window.history.pushState({}, '', '/'); // Limpa URL
-    }} />;
+    return (
+      <AdminPanel 
+        logs={systemLogs} 
+        onLogout={() => {
+          setViewMode('store');
+          setIsAdminAuthenticated(false);
+          window.history.pushState({}, '', '/'); // Limpa URL
+        }} 
+        onGoToStore={() => {
+          setViewMode('store');
+        }}
+      />
+    );
   }
 
   // --- MODO LOJA PADRÃO ---
   return (
     <div className="min-h-screen flex flex-col bg-[#f5f5f5] font-sans">
-      <div className="bg-[#ee4d2d] text-white py-1 px-4 text-[11px] flex justify-between items-center border-b border-white/10 font-bold">
-        <div className="flex items-center gap-3">
-          <span className="cursor-pointer hover:opacity-80">Painel Shoppe Database</span>
-          <span className="flex items-center gap-1"><Globe size={10} /> Português</span>
-        </div>
-        <div className="flex gap-4 items-center">
-          <div className="flex items-center gap-1 cursor-pointer"><Bell size={12} /> Ajuda</div>
-          <span className="font-bold border-l border-white/30 pl-4">Modo: Gerenciamento por Linhas (ID)</span>
-        </div>
-      </div>
-
       <header className="bg-[#ee4d2d] sticky top-0 z-40 px-4 py-4 shadow-lg">
         <div className="max-w-7xl mx-auto flex flex-col md:flex-row items-center gap-4">
           <div className="flex items-center gap-2 cursor-pointer text-white flex-shrink-0" onClick={() => fetchProductsFromSheet()}>
             <ShoppingCart size={32} fill="white" />
             <div className="leading-tight">
               <span className="text-xl font-black italic tracking-tighter block uppercase">Shoppe</span>
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">DB Manager v4</span>
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-80">Vitrine Digital</span>
             </div>
+            {isAdminAuthenticated && (
+               <span className="bg-white text-[#ee4d2d] text-[10px] font-bold px-2 py-0.5 rounded ml-2 shadow-sm">ADMIN MODE</span>
+            )}
           </div>
 
           <div className="flex-grow w-full relative">
             <div className="bg-white rounded-sm p-1 flex items-center shadow-inner">
               <input 
                 type="text" 
-                placeholder="Busque por nome ou número da linha..." 
+                placeholder="Buscar em Meus Produtos..." 
                 className="w-full px-4 py-2 outline-none text-sm text-black font-medium"
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
@@ -623,31 +636,36 @@ const App: React.FC = () => {
         <div className="flex flex-col md:flex-row justify-between items-center mb-6 gap-4 bg-white p-5 rounded-sm shadow-sm border-b-2 border-[#ee4d2d]">
           <div className="flex items-center gap-4">
             <div className="bg-[#ee4d2d]/10 p-3 rounded-full">
-              <Database className="text-[#ee4d2d]" size={22} />
+              <Store className="text-[#ee4d2d]" size={22} />
             </div>
             <div>
-              <h1 className="text-lg font-bold text-gray-800 tracking-tight">Base de Dados</h1>
+              <h1 className="text-lg font-bold text-gray-800 tracking-tight">Meus Produtos</h1>
               <p className="text-gray-400 text-[11px] font-medium uppercase tracking-wider">
-                Controle: <span className="text-orange-600 font-bold">Por Row ID</span>
+                {isAdminAuthenticated ? 'Gerencie seu catálogo online' : 'Confira nossas ofertas exclusivas'}
               </p>
             </div>
           </div>
           
           <div className="flex gap-2 w-full md:w-auto">
-            <button 
-              onClick={fetchProductsFromSheet}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-200 text-gray-500 px-4 py-2.5 rounded-sm text-sm font-bold hover:bg-gray-50 transition-all"
-            >
-              <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
-              SYNC
-            </button>
-            <button 
-              onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
-              className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#ee4d2d] text-white px-6 py-2.5 rounded-sm text-sm font-black shadow-md hover:brightness-110 transition-all"
-            >
-              <Plus size={18} />
-              ADICIONAR
-            </button>
+            {isAdminAuthenticated && (
+              <button 
+                onClick={fetchProductsFromSheet}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 border border-gray-200 text-gray-500 px-4 py-2.5 rounded-sm text-sm font-bold hover:bg-gray-50 transition-all"
+              >
+                <RefreshCw size={16} className={isLoading ? 'animate-spin' : ''} />
+                ATUALIZAR
+              </button>
+            )}
+            
+            {isAdminAuthenticated && (
+              <button 
+                onClick={() => { setEditingProduct(null); setIsModalOpen(true); }}
+                className="flex-1 md:flex-none flex items-center justify-center gap-2 bg-[#ee4d2d] text-white px-6 py-2.5 rounded-sm text-sm font-black shadow-md hover:brightness-110 transition-all"
+              >
+                <Plus size={18} />
+                NOVO PRODUTO
+              </button>
+            )}
           </div>
         </div>
 
@@ -655,39 +673,36 @@ const App: React.FC = () => {
           {isLoading && products.length === 0 ? (
             <div className="col-span-full py-32 flex flex-col items-center justify-center bg-white rounded-sm border border-gray-100">
               <Loader2 size={48} className="animate-spin text-[#ee4d2d] mb-4" />
-              <p className="text-gray-500 text-sm font-black tracking-widest uppercase">Carregando dados da nuvem...</p>
+              <p className="text-gray-500 text-sm font-black tracking-widest uppercase">Carregando catálogo...</p>
             </div>
           ) : filteredProducts.map(produto => (
             <div 
               key={produto.id} 
-              onClick={() => openEditModal(produto)}
+              onClick={() => isAdminAuthenticated ? openEditModal(produto) : window.open(produto.link, '_blank')}
               className={`bg-white rounded-sm overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-transparent hover:border-[#ee4d2d] group flex flex-col h-full relative cursor-pointer ${processingLine === produto.rowNumber ? 'opacity-40 grayscale pointer-events-none' : ''}`}
             >
-              {/* Badge da Linha */}
-              <div className="absolute top-0 left-0 z-20 bg-black text-white px-2.5 py-1.5 flex items-center gap-1 shadow-lg rounded-br-sm border-r border-b border-white/20">
-                <span className="text-[10px] font-black leading-none">ID #{produto.rowNumber}</span>
-              </div>
-
-              {/* Botões de Ação */}
-              <div className="absolute top-2 right-2 z-30 flex flex-col gap-2 md:opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
-                <button 
-                  onClick={(e) => { e.stopPropagation(); openEditModal(produto); }}
-                  className="p-2.5 bg-blue-500 text-white rounded-full shadow-lg hover:scale-110 transition-transform"
-                  title="Editar"
-                >
-                  <Pencil size={14} />
-                </button>
-                <button 
-                  onClick={(e) => { 
-                    e.stopPropagation(); 
-                    setDeleteModal({ isOpen: true, productName: produto.name, rowNumber: produto.rowNumber });
-                  }}
-                  className="p-2.5 bg-white text-red-500 rounded-full shadow-lg border border-gray-100 hover:bg-red-600 hover:text-white transition-all hover:scale-110"
-                  title="Excluir"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
+              {/* Botões de Ação - SOMENTE ADMIN */}
+              {isAdminAuthenticated && (
+                <div className="absolute top-2 right-2 z-30 flex flex-col gap-2 md:opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-2 group-hover:translate-x-0">
+                  <button 
+                    onClick={(e) => { e.stopPropagation(); openEditModal(produto); }}
+                    className="p-2.5 bg-blue-500 text-white rounded-full shadow-lg hover:scale-110 transition-transform"
+                    title="Editar"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                  <button 
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      setDeleteModal({ isOpen: true, productName: produto.name, rowNumber: produto.rowNumber });
+                    }}
+                    className="p-2.5 bg-white text-red-500 rounded-full shadow-lg border border-gray-100 hover:bg-red-600 hover:text-white transition-all hover:scale-110"
+                    title="Excluir"
+                  >
+                    <Trash2 size={14} />
+                  </button>
+                </div>
+              )}
 
               <div className="relative aspect-square overflow-hidden bg-gray-50 border-b border-gray-100">
                 <img 
@@ -695,7 +710,7 @@ const App: React.FC = () => {
                   alt={produto.name} 
                   className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
                   loading="lazy"
-                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/f5f5f5/ee4d2d?text=Erro+Imagem'; }}
+                  onError={(e) => { (e.target as HTMLImageElement).src = 'https://placehold.co/400x400/f5f5f5/ee4d2d?text=Imagem'; }}
                 />
               </div>
               
@@ -721,14 +736,16 @@ const App: React.FC = () => {
                     onClick={(e) => e.stopPropagation()}
                     className="flex-grow flex items-center justify-center gap-1.5 bg-[#ee4d2d] text-white py-2 rounded-sm text-[11px] font-bold hover:brightness-110 shadow-sm transition-all"
                   >
-                    LINK <ArrowRight size={12} />
+                    VER OFERTA <ArrowRight size={12} />
                   </a>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); openEditModal(produto); }}
-                    className="p-2 border border-blue-200 text-blue-600 rounded-sm hover:bg-blue-50 transition-colors"
-                  >
-                    <Settings size={16} />
-                  </button>
+                  {isAdminAuthenticated && (
+                    <button 
+                      onClick={(e) => { e.stopPropagation(); openEditModal(produto); }}
+                      className="p-2 border border-blue-200 text-blue-600 rounded-sm hover:bg-blue-50 transition-colors"
+                    >
+                      <Pencil size={16} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -737,8 +754,10 @@ const App: React.FC = () => {
           {!isLoading && filteredProducts.length === 0 && (
             <div className="col-span-full py-32 flex flex-col items-center justify-center text-gray-400 bg-white rounded-sm border-2 border-dashed border-gray-100">
               <PackageOpen size={64} strokeWidth={1} className="mb-4 opacity-10" />
-              <p className="text-lg font-bold text-gray-400">Banco de dados vazio</p>
-              <button onClick={() => setSearchTerm('')} className="mt-2 text-[#ee4d2d] font-bold text-sm hover:underline">Ver todos</button>
+              <p className="text-lg font-bold text-gray-400">Sua vitrine está vazia</p>
+              {isAdminAuthenticated && (
+                <button onClick={() => { setEditingProduct(null); setIsModalOpen(true); }} className="mt-2 text-[#ee4d2d] font-bold text-sm hover:underline">Adicionar primeiro produto</button>
+              )}
             </div>
           )}
         </div>
@@ -746,31 +765,47 @@ const App: React.FC = () => {
 
       {syncStatus !== 'idle' && (
         <div className="fixed bottom-6 right-6 z-[100] bg-gray-900 text-white px-6 py-4 rounded-lg text-xs font-black shadow-2xl flex items-center gap-4 animate-in slide-in-from-bottom duration-300">
-          {syncStatus === 'syncing' && <><Loader2 size={18} className="animate-spin text-[#ee4d2d]" /> SINCRONIZANDO (POR ID)...</>}
-          {syncStatus === 'success' && <><CheckCircle2 size={18} className="text-green-400" /> OPERAÇÃO CONCLUÍDA!</>}
-          {syncStatus === 'error' && <><AlertCircle size={18} className="text-red-400" /> ERRO DE OPERAÇÃO.</>}
+          {syncStatus === 'syncing' && <><Loader2 size={18} className="animate-spin text-[#ee4d2d]" /> SALVANDO ALTERAÇÕES...</>}
+          {syncStatus === 'success' && <><CheckCircle2 size={18} className="text-green-400" /> ATUALIZADO COM SUCESSO!</>}
+          {syncStatus === 'error' && <><AlertCircle size={18} className="text-red-400" /> ERRO DE CONEXÃO.</>}
         </div>
       )}
 
       {/* Modais */}
-      <ProductModal 
-        isOpen={isModalOpen} 
-        onClose={() => { setIsModalOpen(false); setEditingProduct(null); }} 
-        onSave={handleSaveProduct}
-        editingProduct={editingProduct}
-      />
+      {isAdminAuthenticated && (
+        <>
+          <ProductModal 
+            isOpen={isModalOpen} 
+            onClose={() => { setIsModalOpen(false); setEditingProduct(null); }} 
+            onSave={handleSaveProduct}
+            editingProduct={editingProduct}
+          />
 
-      <ConfirmDeleteModal 
-        isOpen={deleteModal.isOpen}
-        productName={deleteModal.productName}
-        rowNumber={deleteModal.rowNumber}
-        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-        onConfirm={() => handleDeleteProduct(deleteModal.rowNumber, deleteModal.productName)}
-      />
+          <ConfirmDeleteModal 
+            isOpen={deleteModal.isOpen}
+            productName={deleteModal.productName}
+            rowNumber={deleteModal.rowNumber}
+            onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
+            onConfirm={() => handleDeleteProduct(deleteModal.rowNumber, deleteModal.productName)}
+          />
+        </>
+      )}
       
       <footer className="bg-white border-t border-gray-100 py-10 px-4 text-center mt-auto">
-        <p className="text-[11px] text-gray-400 uppercase tracking-widest font-black text-[#ee4d2d]">Shoppe Database Manager v4.0</p>
-        <p className="text-[9px] text-gray-300 mt-2 font-medium">Indexação por Row ID (Database Mode)</p>
+        <p className="text-[11px] text-gray-400 uppercase tracking-widest font-black text-[#ee4d2d]">© 2024 Shoppe Vitrine Digital</p>
+        <p className="text-[9px] text-gray-300 mt-2 font-medium">Todos os direitos reservados</p>
+        
+        <div className="mt-6 flex justify-center">
+          {isAdminAuthenticated ? (
+             <button onClick={() => setViewMode('admin-dashboard')} className="text-[10px] text-gray-400 hover:text-[#ee4d2d] flex items-center gap-1 transition-colors">
+               <Terminal size={12} /> Console Admin
+             </button>
+          ) : (
+             <button onClick={() => setViewMode('admin-login')} className="text-[10px] text-gray-200 hover:text-gray-400 flex items-center gap-1 transition-colors">
+               <Lock size={10} /> Área Restrita
+             </button>
+          )}
+        </div>
       </footer>
     </div>
   );
